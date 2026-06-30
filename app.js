@@ -45,7 +45,6 @@ const STEPS = [
     options: {
       'Household/private sector': { label: 'Private & Household', desc: 'Private individuals, businesses, and private landowners.', icon: 'home' },
       'Local authority': { label: 'Local Authority', desc: 'City councils, local planning boards, and community partners.', icon: 'map' },
-      'Local authority / National/multi-level': { label: 'Joint Local & National', desc: 'Joint initiatives spanning local councils and national bodies.', icon: 'network' },
       'National/multi-level': { label: 'National & Multi-Level', desc: 'National government departments, statutory agencies, and country-wide frameworks.', icon: 'globe' }
     }
   },
@@ -109,6 +108,18 @@ const MEASURE_COLORS = {
   'Physical/technological': '#5c5c52' // Grey
 };
 
+// ── Mythological Risk Classes Configurations ───────────────────
+const MYTHOLOGICAL_CLASSES = ['Damocles', 'Cyclops', 'Pythia', 'Pandora', 'Cassandra', 'Medusa'];
+
+const RISK_CLASSES_CONFIG = {
+  'Damocles':  { color: '#b91c1c', icon: 'shield-alert', kicker: 'Low Probability, Huge Damage' },
+  'Cyclops':   { color: '#d97706', icon: 'eye',          kicker: 'Unknown Probability, High Impact' },
+  'Pythia':    { color: '#6d28d9', icon: 'sparkles',     kicker: 'Deep Double Uncertainty (P + E)' },
+  'Pandora':   { color: '#c2410c', icon: 'archive',      kicker: 'Slow Accumulating, Irreversible' },
+  'Cassandra': { color: '#0f766e', icon: 'bell',         kicker: 'Known Serious Risk, Delayed Action' },
+  'Medusa':    { color: '#be185d', icon: 'users',        kicker: 'Low Risk, High Public Concern' }
+};
+
 // ── Unique Icon Mapping Rules ─────────────────────────────────
 const ICON_RULES = [
   { words: ['tree', 'forest', 'woodland', 'afforestation'], icon: 'tree-pine' },
@@ -148,6 +159,11 @@ const URL_KEYS = {
 
 // ── State variables ───────────────────────────────────────────
 let allData = [];
+let riskData = []; // To hold parsed Risk Archetype rows
+
+let currentMode = 'matcher'; // 'matcher' or 'risk'
+let activeRiskClass = 'Damocles'; // Selected class in Risk Mode
+
 let currentStep = 0; // 0 = Start, 1..9 = Wizard questions, 10 = Results
 let previousStep = 0;
 let selectedRisk = 'All';
@@ -176,10 +192,24 @@ const selections = {
 // ── Boot ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   restoreStateFromURL();
-  fetch('./adaptation_options.csv')
-    .then(r => r.text())
-    .then(text => {
-      allData = parseCSV(text).filter(r => r['Method Name']);
+  
+  // Bind Mode Toggle Button
+  const modeBtn = document.getElementById('mode-toggle-btn');
+  if (modeBtn) {
+    modeBtn.addEventListener('click', () => {
+      currentMode = currentMode === 'matcher' ? 'risk' : 'matcher';
+      renderApp();
+    });
+  }
+
+  // Load both databases asynchronously
+  const fetchAdaptations = fetch('./adaptation_options.csv').then(r => r.text());
+  const fetchRisks = fetch('./risk_classes.csv').then(r => r.text());
+
+  Promise.all([fetchAdaptations, fetchRisks])
+    .then(([adaptText, riskText]) => {
+      allData = parseCSV(adaptText).filter(r => r['Method Name']);
+      riskData = parseCSV(riskText).filter(r => MYTHOLOGICAL_CLASSES.includes(r['Class']));
       renderApp();
     })
     .catch(err => {
@@ -219,16 +249,26 @@ function parseLine(line) {
 // ── URL State Sync ────────────────────────────────────────────
 function updateURL() {
   const params = new URLSearchParams();
-  Object.keys(URL_KEYS).forEach(paramKey => {
-    const csvKey = URL_KEYS[paramKey];
-    const val = selections[csvKey];
-    if (val !== null) {
-      params.set(paramKey, val);
+  
+  if (currentMode === 'risk') {
+    params.set('mode', 'risk');
+    params.set('class', activeRiskClass);
+  } else {
+    Object.keys(URL_KEYS).forEach(paramKey => {
+      const csvKey = URL_KEYS[paramKey];
+      const val = selections[csvKey];
+      if (val !== null) {
+        params.set(paramKey, val);
+      }
+    });
+    if (currentStep > 0) {
+      params.set('step', currentStep);
     }
-  });
-  if (currentStep > 0) {
-    params.set('step', currentStep);
+    if (searchQuery) {
+      params.set('q', searchQuery);
+    }
   }
+  
   const queryStr = params.toString();
   const newURL = window.location.pathname + (queryStr ? '?' + queryStr : '');
   window.history.replaceState(null, '', newURL);
@@ -236,19 +276,41 @@ function updateURL() {
 
 function restoreStateFromURL() {
   const params = new URLSearchParams(window.location.search);
-  Object.keys(URL_KEYS).forEach(paramKey => {
-    const csvKey = URL_KEYS[paramKey];
-    if (params.has(paramKey)) {
-      selections[csvKey] = params.get(paramKey);
+  
+  if (params.has('mode') && params.get('mode') === 'risk') {
+    currentMode = 'risk';
+    if (params.has('class')) {
+      activeRiskClass = params.get('class');
     }
-  });
-  if (params.has('step')) {
-    currentStep = parseInt(params.get('step'), 10) || 0;
+  } else {
+    currentMode = 'matcher';
+    Object.keys(URL_KEYS).forEach(paramKey => {
+      const csvKey = URL_KEYS[paramKey];
+      if (params.has(paramKey)) {
+        selections[csvKey] = params.get(paramKey);
+      }
+    });
+    if (params.has('step')) {
+      currentStep = parseInt(params.get('step'), 10) || 0;
+    }
+    if (params.has('q')) {
+      searchQuery = params.get('q');
+    }
   }
 }
 
 // ── Dynamic Theme Morphing ───────────────────────────────────
 function updateThemeColor() {
+  if (currentMode === 'risk') {
+    const config = RISK_CLASSES_CONFIG[activeRiskClass];
+    if (config) {
+      document.documentElement.style.setProperty('--primary', config.color);
+      document.documentElement.style.setProperty('--primary-bg', config.color + '14');
+      document.documentElement.style.setProperty('--primary-border', config.color + '40');
+      return;
+    }
+  }
+  
   const type = selections['Type of Measure'];
   if (type && MEASURE_COLORS[type]) {
     const color = MEASURE_COLORS[type];
@@ -363,34 +425,46 @@ function renderApp() {
   const container = document.getElementById('app-container');
   const statsBar  = document.getElementById('header-stats');
   const statsCount = document.getElementById('hstat-count');
+  const modeBtnText = document.getElementById('mode-toggle-text');
+  const modeBtnIcon = document.getElementById('mode-toggle-icon');
   
   // Ensure layout contracted by default
   container.classList.remove('expanded-width');
   const headerInner = document.querySelector('.header-inner');
   if (headerInner) headerInner.classList.remove('expanded-width');
-  
-  const activeMatches = getActiveMatchCount();
-  statsCount.textContent = activeMatches;
-  
-  let slideClass = '';
-  if (currentStep > 0 && currentStep <= totalSteps) {
-    if (previousStep < currentStep) {
-      slideClass = 'slide-forward';
-    } else if (previousStep > currentStep) {
-      slideClass = 'slide-backward';
-    }
-  }
-  previousStep = currentStep;
 
-  if (currentStep === 0) {
+  if (currentMode === 'risk') {
     statsBar.style.display = 'none';
-    renderStartScreen(container);
-  } else if (currentStep > 0 && currentStep <= totalSteps) {
-    statsBar.style.display = 'flex';
-    renderWizardScreen(container, slideClass);
+    if (modeBtnText) modeBtnText.textContent = 'Matcher Mode';
+    if (modeBtnIcon) modeBtnIcon.setAttribute('data-lucide', 'compass');
+    renderRiskIdentificationScreen(container);
   } else {
-    statsBar.style.display = 'none';
-    renderResultsScreen(container);
+    if (modeBtnText) modeBtnText.textContent = 'Risk Mode';
+    if (modeBtnIcon) modeBtnIcon.setAttribute('data-lucide', 'shield-alert');
+    
+    const activeMatches = getActiveMatchCount();
+    statsCount.textContent = activeMatches;
+    
+    let slideClass = '';
+    if (currentStep > 0 && currentStep <= totalSteps) {
+      if (previousStep < currentStep) {
+        slideClass = 'slide-forward';
+      } else if (previousStep > currentStep) {
+        slideClass = 'slide-backward';
+      }
+    }
+    previousStep = currentStep;
+
+    if (currentStep === 0) {
+      statsBar.style.display = 'none';
+      renderStartScreen(container);
+    } else if (currentStep > 0 && currentStep <= totalSteps) {
+      statsBar.style.display = 'flex';
+      renderWizardScreen(container, slideClass);
+    } else {
+      statsBar.style.display = 'none';
+      renderResultsScreen(container);
+    }
   }
   
   if (window.lucide) lucide.createIcons();
@@ -1207,10 +1281,127 @@ function drawMatrixGrid(data) {
   }
 }
 
+// ── 4. Risk Identification Mode Screen ────────────────────────
+function renderRiskIdentificationScreen(container) {
+  const activeClassData = riskData.find(r => r['Class'] === activeRiskClass) || riskData[0];
+  if (!activeClassData) {
+    container.innerHTML = `<p class="no-filters-msg">Loading risk profiles...</p>`;
+    return;
+  }
+  
+  const activeConfig = RISK_CLASSES_CONFIG[activeRiskClass] || RISK_CLASSES_CONFIG['Damocles'];
+  
+  // Build sidebar list of 6 Risk Classes
+  let sidebarHTML = '';
+  riskData.forEach(row => {
+    const className = row['Class'];
+    const isActive = className === activeRiskClass;
+    const config = RISK_CLASSES_CONFIG[className] || { color: '#5c5c52', icon: 'shield', kicker: '' };
+    
+    sidebarHTML += `
+      <button class="risk-sidebar-card ${isActive ? 'active' : ''}" 
+              style="--risk-color: ${config.color}" 
+              data-class="${className}"
+              role="tab"
+              aria-selected="${isActive ? 'true' : 'false'}">
+        <div class="risk-card-icon">
+          <i data-lucide="${config.icon}"></i>
+        </div>
+        <div class="risk-card-text">
+          <span class="risk-card-name">${className}</span>
+          <span class="risk-card-kicker">${config.kicker}</span>
+        </div>
+      </button>
+    `;
+  });
+
+  // Build detail metrics grid
+  const metrics = [
+    { label: 'Damage Level (E)', key: 'Damage Level (E)' },
+    { label: 'Probability (P)', key: 'Probability (P)' },
+    { label: 'Uncertainty', key: 'Uncertainty' },
+    { label: 'Damage Speed', key: 'Damage Rate (speed)' },
+    { label: 'Reversibility', key: 'Reversibility' },
+    { label: 'Spatial Scope', key: 'Spatial Scale' },
+    { label: 'Time Delay', key: 'Time Delay' },
+    { label: 'Perceived Risk', key: 'Perceived Risk' }
+  ];
+
+  let metricsHTML = '';
+  metrics.forEach(m => {
+    metricsHTML += `
+      <div class="risk-metric-card">
+        <div class="risk-metric-label">${m.label}</div>
+        <div class="risk-metric-value">${activeClassData[m.key] || '—'}</div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = `
+    <div class="risk-screen">
+      <!-- Intro Section -->
+      <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--rule); padding-bottom: 1.5rem;">
+        <span class="logo-kicker">Scientific Archetypes</span>
+        <h2 style="font-family: var(--font-d); font-size: 2.2rem; font-weight: 400; line-height: 1.1; margin-bottom: 0.5rem;">The Mythology of Risk</h2>
+        <p style="color: var(--ink-3); font-size: 0.95rem; max-width: 720px;">
+          Climate threat management classifies policy challenges using mythological archetypes. Select a profile below to evaluate its scientific traits, core logic, and direct adaptation options.
+        </p>
+      </div>
+
+      <!-- Split Layout -->
+      <div class="risk-portfolio-wrap">
+        <!-- Left Sidebar -->
+        <div class="risk-sidebar" role="tablist" aria-label="Risk Classes">
+          ${sidebarHTML}
+        </div>
+
+        <!-- Right Detail Panel -->
+        <div class="risk-details-panel" style="--risk-color: ${activeConfig.color}">
+          <div class="risk-detail-header">
+            <h3 class="risk-detail-class">
+              <i data-lucide="${activeConfig.icon}"></i> ${activeRiskClass}
+            </h3>
+            <div class="risk-detail-feature">${activeClassData['Key Feature']}</div>
+          </div>
+
+          <!-- Policy Logic blockquote -->
+          <div class="risk-logic-box">
+            <div class="risk-logic-title">General Policy Logic</div>
+            <div class="risk-logic-text">"${activeClassData['General Policy Approach (Design Logic)']}"</div>
+          </div>
+
+          <!-- Risk Characteristics Profile -->
+          <div>
+            <div class="risk-detail-section-title">Scientific Characteristics Profile</div>
+            <div class="risk-metrics-grid">
+              ${metricsHTML}
+            </div>
+          </div>
+
+          <!-- Specific adaptation examples list -->
+          <div class="risk-examples-wrap" style="margin-bottom: 0.5rem;">
+            <div class="risk-examples-title">Specific Adaptation Options (Examples)</div>
+            <div class="risk-examples-list">${activeClassData['Specific Policy Options (Examples)']}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Bind Sidebar selectors
+  container.querySelectorAll('.risk-sidebar-card').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeRiskClass = btn.dataset.class;
+      renderApp();
+    });
+  });
+}
+
 function resetWizard() {
   currentStep = 0;
   selectedRisk = 'All';
   searchQuery = ''; // Reset search query on wizard reset
+  currentMode = 'matcher'; // Return to matcher mode
   Object.keys(selections).forEach(k => selections[k] = null);
   renderApp();
 }

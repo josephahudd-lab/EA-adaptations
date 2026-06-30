@@ -1,0 +1,15 @@
+Class,Key Feature,Damage Level (E),Probability (P),Uncertainty,Damage Rate (speed),Reversibility,Spatial Scale,Time Delay,Perceived Risk,Core Problem,General Policy Approach (Design Logic),Specific Policy Options (Examples)
+Damocles,"Low probability, huge damage",Very high,Low (known),Low–moderate,Sudden,Often irreversible locally,Large but discrete,Immediate,Moderate,Catastrophic impact,Reduce catastrophic damage; build resilience; prepare for shocks,"Flood defences, sea walls, heatwave plans, emergency evacuation systems, backup infrastructure, nuclear safety systems"
+Cyclops,Unknown probability,High,Unknown,High (on P),Sudden or episodic,Variable,Regional/system,Short–medium,Moderate,Lack of knowledge,Reduce uncertainty where possible; otherwise prioritise robustness and flexibility,"Monitoring systems (climate, seismic), early warning systems, adaptive water management, flexible infrastructure planning, stress-testing systems"
+Pythia,Unknown outcomes AND probabilities,Potentially extreme,Unknown,Very high (P + E),Uncertain (could be abrupt),Potentially irreversible,Global/system,Unknown,Variable,Deep uncertainty,Apply precaution; limit exposure; avoid irreversible harm under deep uncertainty,"Restrict development in high-risk zones, strict safety standards, regulatory limits on new technologies, “no regrets” policies, safety margins in infrastructure"
+Pandora,"Long-term, irreversible effects",High (cumulative),High or ongoing,Moderate,"Slow, accumulating",Irreversible,Global,Long-term,Low → increases over time,Irreversibility,Prevent irreversible damage early; act at source; favour substitution and long-term system change,"Managed retreat from coasts, banning harmful substances, transitioning away from fossil fuels, ecosystem restoration, land-use change"
+Cassandra,Known serious risk but ignored,High,High (known),Low,Slow,Often reversible,Global/system,Long delay,Low (initially),Inaction over time,Enable long-term action; overcome short-term incentives; institutionalise forward planning,"Carbon pricing, emissions caps, long-term infrastructure planning, climate adaptation strategies, international agreements (e.g. Paris Agreement)"
+Medusa,Low risk but high public fear,Low–moderate,Low,Low,Variable,Reversible,Local–regional,Immediate–short,High,Social perception,Build trust; align perception with evidence; ensure legitimacy and participation,"Public engagement processes, transparent decision-making, risk communication campaigns, stakeholder consultations, participatory planning"
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+Concept,Question it answers,,,,,,,,,,,
+Probability (P),“How likely is it?”,,,,,,,,,,,
+Uncertainty,“How sure are we about that estimate?”,,,,,,,,,,,

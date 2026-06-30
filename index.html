@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Climate Adaptation Matcher</title>
+  <meta name="description" content="An interactive 9-step matcher to discover climate adaptation pathways and policies.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── App Header ─────────────────────────────────────────── -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="header-logo">
+        <span class="logo-kicker">Climate Resilience Directory</span>
+        <h1 class="logo-title">Climate Adaptation Matcher</h1>
+      </div>
+      <div id="header-stats" class="header-stats" style="display: none">
+        <div class="hstat"><span id="hstat-count">0</span> matching options</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main Dynamic App Container ────────────────────────── -->
+  <main id="app-container" class="app-container">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading adaptation database...</p>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
